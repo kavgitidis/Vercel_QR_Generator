@@ -5,6 +5,7 @@ import QRCodeStyling, {
   type CornerSquareType,
   type Options
 } from 'qr-code-styling';
+import { HexColorPicker } from "react-colorful";
 import { 
   Download, 
   MapPin, 
@@ -16,7 +17,8 @@ import {
   Wand2,
   Circle,
   Square,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -30,11 +32,13 @@ const App: React.FC = () => {
   const [primaryColor, setPrimaryColor] = useState('#8b5cf6'); // Neon Purple
   const [secondaryColor, setSecondaryColor] = useState('#3b82f6'); // Electric Blue
   const [isGradient, setIsGradient] = useState(true);
+  const [activeColorPicker, setActiveColorPicker] = useState<'primary' | 'secondary' | null>(null);
   
   // Overlays
-  const [emoji, setEmoji] = useState('📍');
+  const [centerText, setCenterText] = useState('📍');
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [clearCenter, setClearCenter] = useState(true);
+  const [colorizeCenter, setColorizeCenter] = useState(true); // New mask state
 
   const qrRef = useRef<HTMLDivElement>(null);
   
@@ -51,17 +55,50 @@ const App: React.FC = () => {
     }
   }), []);
 
-  const emojiToDataUrl = (emoji: string) => {
-    if (!emoji) return undefined;
+  const centerTextToDataUrl = (text: string, isGrad: boolean, c1: string, c2: string, colorize: boolean) => {
+    if (!text) return undefined;
     const canvas = document.createElement('canvas');
-    canvas.width = 250;
-    canvas.height = 250;
+    canvas.width = 400; // High-res canvas for crisp text
+    canvas.height = 400;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.font = '180px serif';
+      // Auto-scale font size
+      let fontSize = 300;
+      ctx.font = `900 ${fontSize}px Inter, sans-serif`;
+      let textMetrics = ctx.measureText(text);
+      
+      // Scale down until it fits within the 360px safe zone
+      while (textMetrics.width > 360 && fontSize > 20) {
+        fontSize -= 10;
+        ctx.font = `900 ${fontSize}px Inter, sans-serif`;
+        textMetrics = ctx.measureText(text);
+      }
+
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(emoji, 125, 135);
+      
+      // Draw initial text or emoji
+      ctx.fillStyle = c1;
+      ctx.fillText(text, 200, 200 + (fontSize * 0.05));
+      
+      // If colorize is enabled, apply a source-in composite mask
+      if (colorize) {
+        ctx.globalCompositeOperation = 'source-in';
+        
+        if (isGrad) {
+          const gradient = ctx.createLinearGradient(0, 0, 400, 400);
+          gradient.addColorStop(0, c1);
+          gradient.addColorStop(1, c2);
+          ctx.fillStyle = gradient;
+        } else {
+          ctx.fillStyle = c1;
+        }
+        
+        // Fill the entire canvas, which only paints where the emoji/text already exists
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.globalCompositeOperation = 'source-over'; // Reset
+      }
+      
       return canvas.toDataURL();
     }
     return undefined;
@@ -86,7 +123,7 @@ const App: React.FC = () => {
         type: cornersType,
         color: primaryColor
       },
-      image: logoFile || emojiToDataUrl(emoji),
+      image: logoFile || centerTextToDataUrl(centerText, isGradient, primaryColor, secondaryColor, colorizeCenter),
       imageOptions: {
         hideBackgroundDots: clearCenter,
         imageSize: 0.4,
@@ -99,14 +136,14 @@ const App: React.FC = () => {
       qrRef.current.innerHTML = '';
       qrCode.append(qrRef.current);
     }
-  }, [url, dotsType, cornersType, primaryColor, secondaryColor, isGradient, emoji, logoFile, clearCenter, qrCode]);
+  }, [url, dotsType, cornersType, primaryColor, secondaryColor, isGradient, centerText, logoFile, clearCenter, colorizeCenter, qrCode]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
       reader.onload = () => {
         setLogoFile(reader.result as string);
-        setEmoji('');
+        setCenterText('');
       };
       reader.readAsDataURL(e.target.files[0]);
     }
@@ -116,6 +153,54 @@ const App: React.FC = () => {
     <>
       <div className="aurora-bg" />
       
+      {/* Advanced Color Picker Modal */}
+      {activeColorPicker && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200" 
+          onClick={() => setActiveColorPicker(null)}
+        >
+          <div 
+            className="bg-[#0d0d12] border border-white/10 p-6 sm:p-8 rounded-[32px] shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-200 w-full max-w-sm" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-full flex justify-between items-center mb-2">
+              <h3 className="text-white font-black tracking-widest uppercase text-xs sm:text-sm">
+                {activeColorPicker === 'primary' ? 'Primary Tone' : 'Secondary Tone'}
+              </h3>
+              <button onClick={() => setActiveColorPicker(null)} className="text-white/40 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <HexColorPicker 
+              color={activeColorPicker === 'primary' ? primaryColor : secondaryColor} 
+              onChange={activeColorPicker === 'primary' ? setPrimaryColor : setSecondaryColor} 
+            />
+            
+            <div className="w-full space-y-3 mt-2">
+              <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest text-center">Premium Presets</div>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#1e1e2e', '#ffffff'].map(c => (
+                  <button 
+                    key={c} 
+                    className="w-8 h-8 rounded-full border border-white/20 shadow-lg transition-transform hover:scale-110 active:scale-95" 
+                    style={{backgroundColor: c}} 
+                    onClick={() => activeColorPicker === 'primary' ? setPrimaryColor(c) : setSecondaryColor(c)} 
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button 
+              className="w-full bg-white text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest mt-2 hover:bg-white/90 active:scale-95 transition-all"
+              onClick={() => setActiveColorPicker(null)}
+            >
+              Apply Color
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen p-4 md:p-8 flex justify-center">
         <div className="w-full max-w-[1400px] grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
           
@@ -125,7 +210,7 @@ const App: React.FC = () => {
             {/* Header */}
             <header className="mb-2 md:mb-4 pl-2 text-center xl:text-left">
               <div className="inline-flex items-center justify-center xl:justify-start gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-[#8b5cf6] mb-4 uppercase tracking-[0.2em]">
-                <Wand2 className="w-3 h-3" /> QR Pro Studio
+                <Wand2 className="w-3 h-3" /> KaiGamwTaQR
               </div>
               <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
                 Generate <span className="text-white/40 block sm:inline">Excellence.</span>
@@ -197,27 +282,37 @@ const App: React.FC = () => {
                     <Layers className="w-4 h-4 text-[#10b981]" />
                     <span className="text-xs font-bold uppercase tracking-widest">Centerpiece</span>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider hidden sm:block">Isolate</span>
-                    <div className="relative">
-                      <input type="checkbox" checked={clearCenter} onChange={(e) => setClearCenter(e.target.checked)} className="sr-only peer" />
-                      <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/5 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-all">
-                        <div className="w-4 h-4 bg-white rounded-full scale-75 shadow-sm absolute top-0 left-0 peer-checked:translate-x-4 transition-transform" />
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider hidden xl:block">Isolate</span>
+                      <div className="relative">
+                        <input type="checkbox" checked={clearCenter} onChange={(e) => setClearCenter(e.target.checked)} className="sr-only peer" />
+                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/5 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-all">
+                          <div className="w-4 h-4 bg-white rounded-full scale-75 shadow-sm absolute top-0 left-0 peer-checked:translate-x-4 transition-transform" />
+                        </div>
                       </div>
-                    </div>
-                  </label>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider hidden sm:block">Colorize</span>
+                      <div className="relative">
+                        <input type="checkbox" checked={colorizeCenter} onChange={(e) => setColorizeCenter(e.target.checked)} className="sr-only peer" />
+                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/5 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-all">
+                          <div className="w-4 h-4 bg-white rounded-full scale-75 shadow-sm absolute top-0 left-0 peer-checked:translate-x-4 transition-transform" />
+                        </div>
+                      </div>
+                    </label>
+                  </div>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="relative">
                     <input 
                       type="text" 
-                      value={emoji} 
-                      onChange={(e) => { setEmoji(e.target.value); setLogoFile(null); }}
-                      className="sota-input pr-12 text-lg"
-                      placeholder="Type Emoji 📍"
+                      value={centerText} 
+                      onChange={(e) => { setCenterText(e.target.value); setLogoFile(null); }}
+                      className="sota-input text-center text-lg font-black tracking-wide"
+                      placeholder="Type Text or Emoji..."
                     />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/30 uppercase tracking-widest">Emoji</div>
                   </div>
                   
                   <div className="flex items-center justify-center gap-4 py-2">
@@ -253,22 +348,30 @@ const App: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-4 bg-[#16161d] border border-white/[0.05] p-3 rounded-2xl">
-                    <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-inner shrink-0">
-                      <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="absolute inset-[-10px] cursor-pointer scale-150" />
-                    </div>
+                  <div 
+                    onClick={() => setActiveColorPicker('primary')}
+                    className="flex items-center gap-4 bg-[#16161d] border border-white/[0.05] hover:border-white/20 p-3 rounded-2xl cursor-pointer transition-all active:scale-[0.98]"
+                  >
+                    <div 
+                      className="w-10 h-10 rounded-xl shadow-inner shrink-0" 
+                      style={{ backgroundColor: primaryColor }}
+                    />
                     <div className="min-w-0">
-                      <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">Primary</div>
+                      <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">Primary Tone</div>
                       <div className="text-xs font-mono font-medium text-white/80 uppercase truncate">{primaryColor}</div>
                     </div>
                   </div>
 
-                  <div className={`flex items-center gap-4 bg-[#16161d] border border-white/[0.05] p-3 rounded-2xl transition-all duration-300 ${isGradient ? 'opacity-100' : 'opacity-30 grayscale pointer-events-none'}`}>
-                    <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-inner shrink-0">
-                      <input type="color" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="absolute inset-[-10px] cursor-pointer scale-150" />
-                    </div>
+                  <div 
+                    onClick={() => isGradient && setActiveColorPicker('secondary')}
+                    className={`flex items-center gap-4 bg-[#16161d] border border-white/[0.05] hover:border-white/20 p-3 rounded-2xl transition-all duration-300 ${isGradient ? 'opacity-100 cursor-pointer active:scale-[0.98]' : 'opacity-30 grayscale pointer-events-none'}`}
+                  >
+                    <div 
+                      className="w-10 h-10 rounded-xl shadow-inner shrink-0"
+                      style={{ backgroundColor: secondaryColor }}
+                    />
                     <div className="min-w-0">
-                      <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">Secondary</div>
+                      <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">Secondary Tone</div>
                       <div className="text-xs font-mono font-medium text-white/80 uppercase truncate">{secondaryColor}</div>
                     </div>
                   </div>

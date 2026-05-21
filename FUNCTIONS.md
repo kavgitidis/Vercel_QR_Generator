@@ -1,4 +1,4 @@
-# 📍 QR Pro Studio - Feature Suite
+# 📍 KaiGamwTaQR - Feature Suite
 
 A high-end, professional web application designed for creating aesthetic and brand-aligned Google Maps QR codes.
 

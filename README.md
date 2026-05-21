@@ -1,4 +1,4 @@
-# 📍 QR Pro Studio
+# 📍 KaiGamwTaQR
 
 A State-Of-The-Art (SOTA), browser-based designer suite for generating premium, brand-aligned Google Maps QR codes. 
 
@@ -65,7 +65,7 @@ This application runs entirely in the browser (client-side) and requires no back
 2. Log into [Vercel](https://vercel.com/) and click **Add New -> Project**.
 3. Import your GitHub repository.
 4. Vercel will auto-detect the Vite framework. Simply click **Deploy**.
-5. Your QR Pro Studio is now live!
+5. Your KaiGamwTaQR is now live!
 
 ---
 
