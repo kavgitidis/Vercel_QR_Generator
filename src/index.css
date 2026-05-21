@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    @apply bg-[#050505] text-[#e2e8f0] overflow-x-hidden antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  .bento-card {
+    @apply bg-[#0d0d12] border border-white/[0.04] rounded-[32px] p-6 transition-all duration-500 relative overflow-hidden;
+  }
+  .bento-card:hover {
+    @apply border-white/[0.08] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)];
+  }
+  
+  .sota-input {
+    @apply w-full bg-[#16161d] border border-white/[0.05] rounded-2xl px-5 py-4 text-sm font-medium outline-none text-white placeholder:text-white/20 focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10 transition-all;
+  }
+
+  .sota-btn {
+    @apply flex items-center justify-center gap-2 border rounded-2xl py-3 px-4 text-sm font-semibold transition-all duration-300;
+  }
+  
+  .sota-btn-active {
+    @apply bg-white/10 text-white border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)];
+  }
+  
+  .sota-btn-inactive {
+    @apply bg-[#16161d] text-white/40 border-transparent hover:bg-white/[0.04] hover:text-white/80;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.aurora-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
+  filter: blur(80px);
+}
