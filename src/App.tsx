@@ -277,28 +277,26 @@ const App: React.FC = () => {
 
               {/* BENTO: Overlays */}
               <div className="bento-card">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                   <div className="flex items-center gap-2 text-white/80">
                     <Layers className="w-4 h-4 text-[#10b981]" />
                     <span className="text-xs font-bold uppercase tracking-widest">Centerpiece</span>
                   </div>
-                  <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider hidden xl:block">Isolate</span>
-                      <div className="relative">
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider">Isolate</span>
+                      <div className="relative inline-flex items-center">
                         <input type="checkbox" checked={clearCenter} onChange={(e) => setClearCenter(e.target.checked)} className="sr-only peer" />
-                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/5 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-all">
-                          <div className="w-4 h-4 bg-white rounded-full scale-75 shadow-sm absolute top-0 left-0 peer-checked:translate-x-4 transition-transform" />
-                        </div>
+                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/10 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-colors duration-300" />
+                        <div className="absolute left-0 top-0 w-4 h-4 bg-white rounded-full scale-[0.65] transition-transform duration-300 peer-checked:translate-x-4 shadow-sm" />
                       </div>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider hidden sm:block">Colorize</span>
-                      <div className="relative">
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider">Colorize</span>
+                      <div className="relative inline-flex items-center">
                         <input type="checkbox" checked={colorizeCenter} onChange={(e) => setColorizeCenter(e.target.checked)} className="sr-only peer" />
-                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/5 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-all">
-                          <div className="w-4 h-4 bg-white rounded-full scale-75 shadow-sm absolute top-0 left-0 peer-checked:translate-x-4 transition-transform" />
-                        </div>
+                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/10 peer-checked:bg-[#10b981] peer-checked:border-[#10b981] transition-colors duration-300" />
+                        <div className="absolute left-0 top-0 w-4 h-4 bg-white rounded-full scale-[0.65] transition-transform duration-300 peer-checked:translate-x-4 shadow-sm" />
                       </div>
                     </label>
                   </div>
@@ -331,18 +329,17 @@ const App: React.FC = () => {
 
               {/* BENTO: Color Engine */}
               <div className="bento-card md:col-span-2">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                   <div className="flex items-center gap-2 text-white/80">
                     <Palette className="w-4 h-4 text-[#f59e0b]" />
                     <span className="text-xs font-bold uppercase tracking-widest">Color Engine</span>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider hidden sm:block">Enable Gradient</span>
-                    <div className="relative">
+                  <label className="flex items-center gap-2 cursor-pointer group self-start sm:self-auto">
+                    <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider">Enable Gradient</span>
+                    <div className="relative inline-flex items-center">
                       <input type="checkbox" checked={isGradient} onChange={(e) => setIsGradient(e.target.checked)} className="sr-only peer" />
-                      <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/5 peer-checked:bg-[#f59e0b] peer-checked:border-[#f59e0b] transition-all">
-                        <div className="w-4 h-4 bg-white rounded-full scale-75 shadow-sm absolute top-0 left-0 peer-checked:translate-x-4 transition-transform" />
-                      </div>
+                      <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/10 peer-checked:bg-[#f59e0b] peer-checked:border-[#f59e0b] transition-colors duration-300" />
+                      <div className="absolute left-0 top-0 w-4 h-4 bg-white rounded-full scale-[0.65] transition-transform duration-300 peer-checked:translate-x-4 shadow-sm" />
                     </div>
                   </label>
                 </div>
@@ -381,8 +378,8 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* RIGHT: Preview Stage (Sticky) (Mobile Order: 1) */}
-          <div className="xl:col-span-5 order-1 xl:order-2 xl:sticky top-4 xl:top-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
+          {/* RIGHT: Preview Stage (Sticky) (Mobile Order: 2) */}
+          <div className="xl:col-span-5 order-2 xl:sticky top-4 xl:top-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
             <div className="relative group perspective-1000">
               
               {/* Massive SOTA Glow */}
