@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import QRCodeStyling, {
-  DrawType,
-  DotType,
-  CornerSquareType,
-  Options
+  type DrawType,
+  type DotType,
+  type CornerSquareType,
+  type Options
 } from 'qr-code-styling';
 import { 
   Download, 
-  Upload, 
   MapPin, 
   Layers, 
   Palette,
@@ -15,7 +14,6 @@ import {
   Maximize,
   Image as ImageIcon,
   Wand2,
-  CheckCircle2,
   Circle,
   Square,
   Sparkles
