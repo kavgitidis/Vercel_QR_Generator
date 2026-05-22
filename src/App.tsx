@@ -177,7 +177,8 @@ const App: React.FC = () => {
             setNotification({ message: 'Save Failed: ' + (e.message || 'Unknown error'), type: 'error' });
           }
         } else {
-          qrCode.download({ name: 'qr', extension });
+          const date = new Date().valueOf();
+          qrCode.download({ name: `qr-${date}`, extension });
         }
       };
       reader.readAsDataURL(blob);
