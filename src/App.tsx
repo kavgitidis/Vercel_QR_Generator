@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import QRCodeStyling, {
   type DrawType,
   type DotType,
@@ -18,8 +18,14 @@ import {
   Circle,
   Square,
   Sparkles,
-  X
+  X,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
+import { registerPlugin, Capacitor } from '@capacitor/core';
+
+// Register the native bridge once
+const NativeExport = registerPlugin<any>('ExportPlugin');
 
 const App: React.FC = () => {
   const [url, setUrl] = useState('https://maps.app.goo.gl/example');
@@ -32,6 +38,7 @@ const App: React.FC = () => {
   const [primaryColor, setPrimaryColor] = useState('#8b5cf6'); // Neon Purple
   const [secondaryColor, setSecondaryColor] = useState('#3b82f6'); // Electric Blue
   const [isGradient, setIsGradient] = useState(true);
+  const [isTransparent, setIsTransparent] = useState(false);
   const [activeColorPicker, setActiveColorPicker] = useState<'primary' | 'secondary' | null>(null);
   
   // Overlays
@@ -39,21 +46,12 @@ const App: React.FC = () => {
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [clearCenter, setClearCenter] = useState(true);
   const [colorizeCenter, setColorizeCenter] = useState(true); // New mask state
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   const qrRef = useRef<HTMLDivElement>(null);
   
-  const qrCode = useMemo(() => new QRCodeStyling({
-    width: 1000,
-    height: 1000,
-    margin: 20,
-    type: 'svg' as DrawType,
-    imageOptions: {
-      crossOrigin: 'anonymous',
-      margin: 15,
-      imageSize: 0.4,
-      hideBackgroundDots: true
-    }
-  }), []);
+  // Create a state to hold the current instance
+  const [qrCode, setQrCode] = useState<QRCodeStyling | null>(null);
 
   const centerTextToDataUrl = (text: string, isGrad: boolean, c1: string, c2: string, colorize: boolean) => {
     if (!text) return undefined;
@@ -105,7 +103,11 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const options: Partial<Options> = {
+    const options: Options = {
+      width: 1000,
+      height: 1000,
+      margin: 20,
+      type: 'svg' as DrawType,
       data: url || ' ',
       dotsOptions: {
         type: dotsType,
@@ -123,20 +125,67 @@ const App: React.FC = () => {
         type: cornersType,
         color: primaryColor
       },
+      backgroundOptions: {
+        color: isTransparent ? 'rgba(0, 0, 0, 0)' : '#ffffff',
+      },
       image: logoFile || centerTextToDataUrl(centerText, isGradient, primaryColor, secondaryColor, colorizeCenter),
       imageOptions: {
+        crossOrigin: 'anonymous',
         hideBackgroundDots: clearCenter,
         imageSize: 0.4,
         margin: 10
       }
     };
 
-    qrCode.update(options);
+    // Completely destroy and recreate the instance to fix canvas caching bugs
+    const newQrCode = new QRCodeStyling(options);
+    setQrCode(newQrCode);
+
     if (qrRef.current) {
       qrRef.current.innerHTML = '';
-      qrCode.append(qrRef.current);
+      newQrCode.append(qrRef.current);
     }
-  }, [url, dotsType, cornersType, primaryColor, secondaryColor, isGradient, centerText, logoFile, clearCenter, colorizeCenter, qrCode]);
+  }, [url, dotsType, cornersType, primaryColor, secondaryColor, isGradient, isTransparent, centerText, logoFile, clearCenter, colorizeCenter]);
+
+  const handleExport = async (extension: 'png' | 'svg') => {
+    if (!qrCode) return;
+    console.log('handleExport called', extension);
+    try {
+      const blob = await qrCode.getRawData(extension);
+      if (!blob) {
+        console.error('Failed to generate QR data');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+
+        if (Capacitor.isNativePlatform()) {
+          try {
+            console.log('Calling NativeExport.saveImage');
+            await NativeExport.saveImage({
+              base64: base64Data,
+              name: `qr-pro-${Date.now()}.${extension}`
+            });
+            setNotification({
+              message: extension === 'svg' ? 'Vector SVG saved to Downloads!' : 'Success! Image saved to Gallery.',
+              type: 'success'
+            });
+          } catch (e: any) {
+            console.error('Native Save Error', e);
+            setNotification({ message: 'Save Failed: ' + (e.message || 'Unknown error'), type: 'error' });
+          }
+        } else {
+          qrCode.download({ name: 'qr-pro', extension });
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (error: any) {
+      console.error('Export logic failed', error);
+      setNotification({ message: 'Export failed: ' + (error.message || 'Unknown error'), type: 'error' });
+    }
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -153,6 +202,39 @@ const App: React.FC = () => {
     <>
       <div className="aurora-bg" />
       
+      {/* Themed Notification Modal */}
+      {notification && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setNotification(null)}
+        >
+          <div
+            className="bg-[#0d0d12] border border-white/10 p-8 rounded-[32px] shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300 w-full max-w-sm text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center ${notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+              {notification.type === 'success' ? <CheckCircle className="w-10 h-10" /> : <AlertCircle className="w-10 h-10" />}
+            </div>
+
+            <div>
+              <h3 className="text-white font-black text-xl mb-2">
+                {notification.type === 'success' ? 'Export Complete' : 'Export Failed'}
+              </h3>
+              <p className="text-white/60 text-sm leading-relaxed">
+                {notification.message}
+              </p>
+            </div>
+
+            <button
+              className="w-full bg-white text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/90 active:scale-95 transition-all mt-2"
+              onClick={() => setNotification(null)}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Advanced Color Picker Modal */}
       {activeColorPicker && (
         <div 
@@ -204,8 +286,8 @@ const App: React.FC = () => {
       <div className="min-h-screen p-4 md:p-8 flex justify-center">
         <div className="w-full max-w-[1400px] grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
           
-          {/* LEFT: Bento Box Controls (Mobile Order: 2) */}
-          <div className="xl:col-span-7 flex flex-col gap-6 order-2 xl:order-1">
+          {/* Bento Box Controls */}
+          <div className="xl:col-span-7 flex flex-col gap-6 order-1 xl:order-1">
             
             {/* Header */}
             <header className="mb-2 md:mb-4 pl-2 text-center xl:text-left">
@@ -334,14 +416,24 @@ const App: React.FC = () => {
                     <Palette className="w-4 h-4 text-[#f59e0b]" />
                     <span className="text-xs font-bold uppercase tracking-widest">Color Engine</span>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer group self-start sm:self-auto">
-                    <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider">Enable Gradient</span>
-                    <div className="relative inline-flex items-center">
-                      <input type="checkbox" checked={isGradient} onChange={(e) => setIsGradient(e.target.checked)} className="sr-only peer" />
-                      <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/10 peer-checked:bg-[#f59e0b] peer-checked:border-[#f59e0b] transition-colors duration-300" />
-                      <div className="absolute left-0 top-0 w-4 h-4 bg-white rounded-full scale-[0.65] transition-transform duration-300 peer-checked:translate-x-4 shadow-sm" />
-                    </div>
-                  </label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider">Transparent</span>
+                      <div className="relative inline-flex items-center">
+                        <input type="checkbox" checked={isTransparent} onChange={(e) => setIsTransparent(e.target.checked)} className="sr-only peer" />
+                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/10 peer-checked:bg-[#f59e0b] peer-checked:border-[#f59e0b] transition-colors duration-300" />
+                        <div className="absolute left-0 top-0 w-4 h-4 bg-white rounded-full scale-[0.65] transition-transform duration-300 peer-checked:translate-x-4 shadow-sm" />
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <span className="text-[10px] font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-wider">Gradient</span>
+                      <div className="relative inline-flex items-center">
+                        <input type="checkbox" checked={isGradient} onChange={(e) => setIsGradient(e.target.checked)} className="sr-only peer" />
+                        <div className="w-8 h-4 bg-[#16161d] rounded-full border border-white/10 peer-checked:bg-[#f59e0b] peer-checked:border-[#f59e0b] transition-colors duration-300" />
+                        <div className="absolute left-0 top-0 w-4 h-4 bg-white rounded-full scale-[0.65] transition-transform duration-300 peer-checked:translate-x-4 shadow-sm" />
+                      </div>
+                    </label>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -378,16 +470,14 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* RIGHT: Preview Stage (Sticky) (Mobile Order: 2) */}
+          {/* Preview Stage (Sticky) */}
           <div className="xl:col-span-5 order-2 xl:sticky top-4 xl:top-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
             <div className="relative group perspective-1000">
               
-              {/* Massive SOTA Glow */}
               <div className="absolute -inset-4 bg-gradient-to-tr from-[#8b5cf6] via-transparent to-[#3b82f6] rounded-[32px] sm:rounded-[48px] blur-xl sm:blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-1000" />
               
               <div className="relative bg-[#0d0d12]/80 backdrop-blur-3xl border border-white/10 p-2 sm:p-3 rounded-[32px] sm:rounded-[40px] shadow-2xl flex flex-col">
                 
-                {/* Status Bar */}
                 <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
@@ -396,23 +486,21 @@ const App: React.FC = () => {
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 hidden sm:block">1000x1000 PX</span>
                 </div>
 
-                {/* QR Stage */}
                 <div className="p-4 sm:p-8 md:p-12 flex items-center justify-center">
-                  <div className="relative w-full max-w-[350px] aspect-square bg-white rounded-2xl md:rounded-3xl p-4 sm:p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_16px_32px_-8px_rgba(0,0,0,0.5)] transform transition-transform duration-700 hover:scale-[1.03] overflow-hidden flex items-center justify-center">
+                  <div className={`relative w-full max-w-[350px] aspect-square rounded-2xl md:rounded-3xl p-4 sm:p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_16px_32px_-8px_rgba(0,0,0,0.5)] transform transition-transform duration-700 hover:scale-[1.03] overflow-hidden flex items-center justify-center ${isTransparent ? 'bg-checkerboard' : 'bg-white'}`}>
                     <div id="qr-container" ref={qrRef} className="w-full h-full flex items-center justify-center" />
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 pt-0">
                   <button 
-                    onClick={() => qrCode.download({ name: 'qr-pro', extension: 'png' })}
+                    onClick={() => handleExport('png')}
                     className="bg-white hover:bg-white/90 text-black py-3 sm:py-4 rounded-[20px] sm:rounded-3xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Download className="w-3 h-3 sm:w-4 sm:h-4" /> PNG Export
                   </button>
                   <button 
-                    onClick={() => qrCode.download({ name: 'qr-pro', extension: 'svg' })}
+                    onClick={() => handleExport('svg')}
                     className="bg-[#16161d] hover:bg-white/10 border border-white/5 text-white py-3 sm:py-4 rounded-[20px] sm:rounded-3xl font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Download className="w-3 h-3 sm:w-4 sm:h-4 text-white/50" /> Vector SVG
