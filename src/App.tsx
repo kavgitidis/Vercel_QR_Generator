@@ -166,7 +166,7 @@ const App: React.FC = () => {
             console.log('Calling NativeExport.saveImage');
             await NativeExport.saveImage({
               base64: base64Data,
-              name: `qr-pro-${Date.now()}.${extension}`
+              name: `qr-${Date.now()}.${extension}`
             });
             setNotification({
               message: extension === 'svg' ? 'Vector SVG saved to Downloads!' : 'Success! Image saved to Gallery.',

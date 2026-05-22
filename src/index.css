@@ -68,3 +68,14 @@
     radial-gradient(at 50% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
   filter: blur(80px);
 }
+
+.bg-checkerboard {
+  background-image: linear-gradient(45deg, #16161d 25%, transparent 25%),
+    linear-gradient(-45deg, #16161d 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #16161d 75%),
+    linear-gradient(-45deg, transparent 75%, #16161d 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  background-color: #0d0d12;
+}
+
